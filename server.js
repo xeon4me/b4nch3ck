@@ -104,3 +104,112 @@ function validateToken(req, res, next) {
 
   next();
 }
+
+// ===== ROUTES =====
+
+// Root route - serve frontend
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Protected API endpoint
+app.get('/checkban', rateLimiter, validateToken, async (req, res) => {
+  try {
+    const { numero } = req.query;
+
+    // Validate phone number
+    if (!numero || numero.length < 8) {
+      return res.status(400).json({
+        error: true,
+        message: 'Invalid phone number format'
+      });
+    }
+
+    // Clean the number
+    const cleanNumber = numero.replace(/[^0-9]/g, '');
+
+    console.log(`🔍 Checking ban status for: ${cleanNumber}`);
+
+    // Call external API
+    const response = await axios.get(
+      `https://consultas.cc/apis/whatsapp/checkban.php?numero=${cleanNumber}`,
+      {
+        timeout: 15000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      }
+    );
+
+    console.log(`✅ Ban check completed for: ${cleanNumber} - Banned: ${response.data.banido}`);
+
+    // Return the response
+    res.json(response.data);
+
+  } catch (error) {
+    console.error('❌ Error checking ban status:', error.message);
+    
+    if (error.code === 'ECONNABORTED') {
+      return res.status(504).json({
+        error: true,
+        message: 'Request timeout. The service is taking too long to respond.'
+      });
+    }
+
+    if (error.response) {
+      return res.status(error.response.status).json({
+        error: true,
+        message: 'External API error. Please try again later.'
+      });
+    }
+
+    res.status(500).json({
+      error: true,
+      message: 'Failed to check ban status. Please try again.'
+    });
+  }
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok',
+    service: 'AntiJudas Ban Checker',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
+// API info endpoint
+app.get('/api/info', (req, res) => {
+  res.json({
+    name: 'AntiJudas Ban Checker API',
+    version: '1.0.0',
+    author: 'Brutozin',
+    endpoints: {
+      check: '/checkban?numero=PHONE_NUMBER',
+      health: '/health'
+    },
+    note: 'Authentication required for all endpoints'
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    error: true,
+    message: 'Endpoint not found'
+  });
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log('╔════════════════════════════════════════╗');
+  console.log('║   🕯️  AntiJudas Ban Checker API 🕯️    ║');
+  console.log('╚════════════════════════════════════════╝');
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌐 Local: http://localhost:${PORT}`);
+  console.log(`🔐 API Secret: ${API_SECRET.substring(0, 10)}...`);
+  console.log(`⏱️  Started at: ${new Date().toISOString()}`);
+  console.log('════════════════════════════════════════');
+});
