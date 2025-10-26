@@ -1,0 +1,39 @@
+<!-- Modified frontend (based on user's original HTML) -->
+if (data.details.status) html += `<div class="detail-item"><div class="detail-label">Account Status</div><div class="detail-value">${(data.details.status||'').toUpperCase()}</div></div>`;
+if (data.details.in_app_ban_appeal === 1) html += `<div class="detail-item"><div class="detail-label">Appeal Status</div><div class="detail-value">Appeal Available</div></div>`;
+html += '</div>';
+}
+
+
+html += `<div class="action-buttons"><button class="btn-secondary" onclick="resetCheck()">CANCEL</button><button class="btn-secondary btn-support" onclick="showSupport()">SUPPORT</button></div></div>`;
+
+
+result.innerHTML = html;
+result.classList.add('show');
+}
+
+
+function formatPhone(phone) {
+if (phone.length > 10) {
+return '+' + phone.substring(0, 2) + ' ' + phone.substring(2, 5) + '-' + phone.substring(5, 9) + '-' + phone.substring(9);
+}
+return phone;
+}
+
+
+function resetCheck() {
+document.getElementById('result').classList.remove('show');
+document.getElementById('phone').value = '';
+document.getElementById('phone').focus();
+document.getElementById('headerStatus').textContent = 'READY TO CHECK';
+}
+
+
+function showSupport() { alert('For support, please contact Team Xost'); }
+
+
+document.getElementById('phone').addEventListener('keypress', function(e) { if (e.key === 'Enter') checkBan(); });
+document.getElementById('phone').addEventListener('input', function(e) { let value = e.target.value.replace(/[^0-9+\s-]/g, ''); e.target.value = value; });
+</script>
+</body>
+</html>
